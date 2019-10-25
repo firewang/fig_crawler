@@ -4,6 +4,7 @@
 
 import os
 import sys
+import re
 
 import requests
 from bs4 import BeautifulSoup as bb
@@ -67,6 +68,7 @@ def get_figs(page_url):
         page.encoding = 'gbk'
         soup = bb(page.text, 'lxml')
         dir_name = soup.title.text.split("P]")[0]
+        dir_name = re.sub(r'[/:*?"<>|]', '-', dir_name)  # 验证是否包含不合法字符，并替换
         if page.url == "https://qqi668.com/cip.asp":
             break
         xiangce_dir = os.path.join(os.getcwd(), dir_name)
