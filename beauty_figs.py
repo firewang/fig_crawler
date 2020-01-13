@@ -13,9 +13,10 @@ import time
 import random
 import socket
 from multiprocessing import Pool
+from fake_useragent import UserAgent
 
 headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36 QIHU 360SE'
+    'User-Agent': UserAgent(verify_ssl=False).chrome
 }
 
 
@@ -88,8 +89,7 @@ def get_figs(page_url):
                     else:
                         socket.setdefaulttimeout(300)
                         opener = urllib.request.build_opener()
-                        opener.addheaders = [('User-Agent',
-                                              'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1941.0 Safari/537.36')]
+                        opener.addheaders = [('User-Agent', UserAgent(verify_ssl=False).chrome)]
                         urllib.request.install_opener(opener)
                         urllib.request.urlretrieve(fig_url, fig_path, progress)
                         f.write(fig_url)
@@ -100,4 +100,4 @@ def get_figs(page_url):
 
 if __name__ == '__main__':
     pool = Pool()
-    pool.map(bianli_pages, range(1, 230))
+    pool.map(bianli_pages, range(1, 4))
