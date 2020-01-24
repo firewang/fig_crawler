@@ -19,11 +19,13 @@ headers = {
     'User-Agent': UserAgent(verify_ssl=False).chrome
 }
 
+main_domain = "https://qqk19.com"
+
 
 def bianli_pages(offset):
-    index_page = f"https://qqh225.com/luyilu/list_5_{offset}.html"  # 引导页
+    index_page = f"{main_domain}/luyilu/list_5_{offset}.html"  # 引导页
     url_reponse = requests.get(index_page, headers=headers)
-    if url_reponse.url == "https://qqi668.com/cip.asp":
+    if url_reponse.url == f"{main_domain}/cip.asp":
         print(url_reponse.url)
     else:
         with open("nav_index_urls.txt", 'a') as f:
@@ -43,7 +45,7 @@ def get_nav_links(index_url):
     with open("page_urls.txt", 'a') as f:
         for i in neirong:
             print(i.a.get("href"), i.text)
-            link = "https://qqh225.com/" + i.a.get("href")
+            link = f"{main_domain}/" + i.a.get("href")
             f.write(f"{link}  {i.text} \n")
             get_figs(link)
 
@@ -70,7 +72,7 @@ def get_figs(page_url):
         soup = bb(page.text, 'lxml')
         dir_name = soup.title.text.split("P]")[0]
         dir_name = re.sub(r'[/:*?"<>|]', '-', dir_name)  # 验证是否包含不合法字符，并替换
-        if page.url == "https://qqi668.com/cip.asp":
+        if page.url == f"{main_domain}/cip.asp":
             break
         xiangce_dir = os.path.join(os.getcwd(), dir_name)
         if not os.path.exists(xiangce_dir):
