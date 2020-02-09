@@ -1,5 +1,5 @@
 # -*- encoding: utf-8 -*-
-# @Version : 1.0
+# @Version : 1.1
 # @time: 2019年10月22日21:47:19
 
 import os
@@ -22,13 +22,21 @@ headers = {
 main_domain = "https://qqk19.com"
 
 
-def bianli_pages(offset):
-    index_page = f"{main_domain}/luyilu/list_5_{offset}.html"  # 引导页
+def bianli_pages(offset, fig_type=5):
+    fig_type_map = {
+        5: "luyilu",
+        7: "feilin",
+    }
+    global FIG_BASE
+    FIG_BASE = os.path.join(os.getcwd(), fig_type_map[fig_type])
+    if not os.path.exists(FIG_BASE):
+        os.makedirs(FIG_BASE)
+    index_page = f"{main_domain}/{fig_type_map[fig_type]}/list_{fig_type}_{offset}.html"  # 引导页
     url_reponse = requests.get(index_page, headers=headers)
     if url_reponse.url == f"{main_domain}/cip.asp":
         print(url_reponse.url)
     else:
-        with open("nav_index_urls.txt", 'a') as f:
+        with open(os.path.join(FIG_BASE, "nav_index_urls.txt"), 'a') as f:
             f.write(index_page)
             f.write("\r\n")
         get_nav_links(index_page)
@@ -42,7 +50,7 @@ def get_nav_links(index_url):
     soup = bb(html.text, 'lxml')
     neirong = soup.find_all('h2')
     print(neirong)
-    with open("page_urls.txt", 'a') as f:
+    with open(os.path.join(FIG_BASE, "page_urls.txt"), 'a') as f:
         for i in neirong:
             print(i.a.get("href"), i.text)
             link = f"{main_domain}/" + i.a.get("href")
@@ -74,7 +82,7 @@ def get_figs(page_url):
         dir_name = re.sub(r'[/:*?"<>|]', '-', dir_name)  # 验证是否包含不合法字符，并替换
         if page.url == f"{main_domain}/cip.asp":
             break
-        xiangce_dir = os.path.join(os.getcwd(), dir_name)
+        xiangce_dir = os.path.join(FIG_BASE, dir_name)
         if not os.path.exists(xiangce_dir):
             os.mkdir(xiangce_dir)
         neirong = soup.find_all('p')
@@ -102,4 +110,4 @@ def get_figs(page_url):
 
 if __name__ == '__main__':
     pool = Pool()
-    pool.map(bianli_pages, range(1, 4))
+    pool.starmap(bianli_pages, zip(range(1, 4), [5]))
