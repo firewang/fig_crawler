@@ -26,6 +26,9 @@ def bianli_pages(offset, fig_type=5):
     fig_type_map = {
         5: "luyilu",
         7: "feilin",
+        14: "xiurenwang",  # 秀人网
+        2: "zhaifuli",  # 宅福利
+        12: "MiiTao",  # 蜜桃社
     }
     global FIG_BASE
     FIG_BASE = os.path.join(os.getcwd(), fig_type_map[fig_type])
