@@ -14,10 +14,32 @@ import random
 import socket
 from multiprocessing import Pool
 from fake_useragent import UserAgent
+from daili import find_proxy
 
-headers = {
-    'User-Agent': UserAgent(verify_ssl=False).chrome
-}
+requests.packages.urllib3.disable_warnings()
+
+
+def get_response(target_url, useproxy=False, retry_counter=0):
+    headers = {'User-Agent': UserAgent(verify_ssl=False).chrome}
+    while retry_counter < 100:
+        if useproxy:
+            try:
+                proxy_dict = find_proxy()
+                response = requests.get(target_url, headers=headers, proxies=proxy_dict, timeout=30)
+                response.raise_for_status()
+                return response
+            except requests.HTTPError:
+                retry_counter += 1
+                get_response(target_url, useproxy=True, retry_counter=retry_counter)
+        else:
+            try:
+                response = requests.get(target_url, headers=headers)
+                response.raise_for_status()
+                return response
+            except requests.HTTPError:
+                retry_counter += 1
+                get_response(target_url, useproxy=True, retry_counter=retry_counter)
+
 
 main_domain = "https://qqk19.com"
 
@@ -35,7 +57,8 @@ def bianli_pages(offset, fig_type=5):
     if not os.path.exists(FIG_BASE):
         os.makedirs(FIG_BASE)
     index_page = f"{main_domain}/{fig_type_map[fig_type]}/list_{fig_type}_{offset}.html"  # 引导页
-    url_reponse = requests.get(index_page, headers=headers)
+    # url_reponse = requests.get(index_page, headers=headers)
+    url_reponse = get_response(index_page, useproxy=False, retry_counter=2)
     if url_reponse.url == f"{main_domain}/cip.asp":
         print(url_reponse.url)
     else:
@@ -43,12 +66,13 @@ def bianli_pages(offset, fig_type=5):
             f.write(index_page)
             f.write("\r\n")
         get_nav_links(index_page)
-        time.sleep(random.randint(1, 9))
+        time.sleep(random.randint(1, 3))
 
 
 def get_nav_links(index_url):
     # 从引导页获得该页面中的所有相册链接
-    html = requests.get(index_url, headers=headers)
+    # html = requests.get(index_url, headers=headers)
+    html = get_response(index_url, useproxy=False, retry_counter=2)
     html.encoding = 'gbk'
     soup = bb(html.text, 'lxml')
     neirong = soup.find_all('h2')
@@ -78,7 +102,8 @@ def get_figs(page_url):
             multi_page = page_url
         else:
             multi_page = "{}_{}.html".format(page_url.split(".html")[0], page_i)
-        page = requests.get(multi_page, headers=headers)
+        # page = requests.get(multi_page, headers=headers)
+        page = get_response(multi_page, useproxy=False, retry_counter=10)
         page.encoding = 'gbk'
         soup = bb(page.text, 'lxml')
         dir_name = soup.title.text.split("P]")[0]
@@ -113,4 +138,4 @@ def get_figs(page_url):
 
 if __name__ == '__main__':
     pool = Pool()
-    pool.starmap(bianli_pages, zip(range(1, 4), [5]))
+    pool.starmap(bianli_pages, zip(range(1, 4), [5, 7, 14, 2, 12]))

@@ -8,7 +8,10 @@ simple python beauty pics crawler
 
 目前有下列风格
 + luyilu
-+ feilin
++ feilin 
++ xiurenwang  秀人网
++ zhaifuli 宅福利
++ MiiTao 蜜桃社
 
 
 ## Installation
