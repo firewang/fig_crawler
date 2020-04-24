@@ -1,27 +1,29 @@
 # -*- encoding: utf-8 -*-
-# @Version : 1.1
-# @time: 2019年10月22日21:47:19
+# @Version : 2.0
+# @time: 2020年4月24日16:24:50
 
 import os
-import sys
 import re
+import time
+import random
 
 import requests
 from bs4 import BeautifulSoup as bb
-import urllib
-import time
-import random
-import socket
 from multiprocessing import Pool
+from tqdm import tqdm
 from fake_useragent import UserAgent
 from daili import find_proxy
 
-requests.packages.urllib3.disable_warnings()
-
 
 def get_response(target_url, useproxy=False, retry_counter=0):
+    """
+    :param target_url:
+    :param useproxy:
+    :param retry_counter: 最大重试次数，0意味着在初始不用代理情况下，如果连接不成功，不会使用代理重试
+    :return:
+    """
     headers = {'User-Agent': UserAgent(verify_ssl=False).chrome}
-    while retry_counter < 100:
+    while -1 < retry_counter < 100:
         if useproxy:
             try:
                 proxy_dict = find_proxy()
@@ -29,7 +31,7 @@ def get_response(target_url, useproxy=False, retry_counter=0):
                 response.raise_for_status()
                 return response
             except requests.HTTPError:
-                retry_counter += 1
+                retry_counter -= 1
                 get_response(target_url, useproxy=True, retry_counter=retry_counter)
         else:
             try:
@@ -37,7 +39,7 @@ def get_response(target_url, useproxy=False, retry_counter=0):
                 response.raise_for_status()
                 return response
             except requests.HTTPError:
-                retry_counter += 1
+                retry_counter -= 1
                 get_response(target_url, useproxy=True, retry_counter=retry_counter)
 
 
@@ -63,8 +65,7 @@ def bianli_pages(offset, fig_type=5):
         print(url_reponse.url)
     else:
         with open(os.path.join(FIG_BASE, "nav_index_urls.txt"), 'a') as f:
-            f.write(index_page)
-            f.write("\r\n")
+            f.write(f"{index_page} \n")
         get_nav_links(index_page)
         time.sleep(random.randint(1, 3))
 
@@ -85,54 +86,43 @@ def get_nav_links(index_url):
             get_figs(link)
 
 
-def progress(blocknum, blocksize, totalsize):
-    """
-    https://blog.csdn.net/pursuit_zhangyu/article/details/80556275
-    blocknum:当前的块编号
-    blocksize:每次传输的块大小
-    totalsize:网页文件总大小
-    """
-    sys.stdout.write('\r>> Downloading %.1f%%' % (float(blocknum * blocksize) / float(totalsize) * 100.0))
-    sys.stdout.flush()
-
-
 def get_figs(page_url):
     for page_i in range(1, 26):
         if page_i == 1:
             multi_page = page_url
         else:
             multi_page = "{}_{}.html".format(page_url.split(".html")[0], page_i)
-        # page = requests.get(multi_page, headers=headers)
         page = get_response(multi_page, useproxy=False, retry_counter=10)
+        if page.url == f"{main_domain}/cip.asp":
+            break
         page.encoding = 'gbk'
         soup = bb(page.text, 'lxml')
         dir_name = soup.title.text.split("P]")[0]
         dir_name = re.sub(r'[/:*?"<>|]', '-', dir_name)  # 验证是否包含不合法字符，并替换
-        if page.url == f"{main_domain}/cip.asp":
-            break
         xiangce_dir = os.path.join(FIG_BASE, dir_name)
         if not os.path.exists(xiangce_dir):
             os.mkdir(xiangce_dir)
         neirong = soup.find_all('p')
-        # print(neirong)
         with open(os.path.join(xiangce_dir, "fig_urls.txt"), 'a') as f:
-            for i in neirong:
+            for i in tqdm(neirong):
+                # tqdm 来展示当前页面下载进度
                 try:
-                    print(i.img.get("src"))
+                    # print(i.img.get("src"))
                     fig_url = i.img.get("src")
                     # 增加判断本地文件是否存在，存在则跳过
                     fig_path = os.path.join(xiangce_dir, f'{fig_url.split("/")[-1]}')
                     if os.path.exists(fig_path):
                         continue
                     else:
-                        socket.setdefaulttimeout(300)
-                        opener = urllib.request.build_opener()
-                        opener.addheaders = [('User-Agent', UserAgent(verify_ssl=False).chrome)]
-                        urllib.request.install_opener(opener)
-                        urllib.request.urlretrieve(fig_url, fig_path, progress)
-                        f.write(fig_url)
-                        f.write("\r\n")
-                except:
+                        with open(fig_path, 'wb') as fig_f:
+                            fig_f.write(get_response(fig_url, useproxy=False, retry_counter=3).content)
+                        f.write(f"{fig_url} \n")
+                except requests.Timeout:
+                    continue
+                except AttributeError:
+                    # 第一个p标签存着人物介绍
+                    with open(os.path.join(xiangce_dir, "profile.txt"), "a", encoding="utf-8") as profile_f:
+                        profile_f.writelines(i.text)
                     continue
 
 

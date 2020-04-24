@@ -31,5 +31,4 @@ pip install -r requirements.txt
 运行时尽量填写较小的range范围， 默认的230差不多是整站的所有图片（耗时比较久）
 
 ## Future
-+ 目前 urllib和requests 混用，后期全部改为requests
-+ 加入代理（代理池是个问题）
++ 优化代理
